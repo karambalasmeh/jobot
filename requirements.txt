@@ -1,0 +1,42 @@
+# ==========================================
+# 1. Core API & Configuration
+# ==========================================
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+pydantic>=2.7
+pydantic-settings>=2.3
+
+# ==========================================
+# 2. RAG & LLM Orchestration (LangChain 0.3.x)
+# ==========================================
+langchain>=0.3.14
+langchain-core>=0.3.28
+langchain-community>=0.3.14
+
+# ==========================================
+# 3. Google Cloud / Vertex AI (Primary LLM + Embeddings + Vector Search)
+# ==========================================
+langchain-google-vertexai>=2.0.12
+google-cloud-aiplatform>=1.74.0
+
+# ==========================================
+# 4. Hybrid Search (BM25 Keyword Index)
+# ==========================================
+rank-bm25>=0.2.2
+
+# ==========================================
+# 5. Document Processing
+# ==========================================
+pymupdf>=1.24.9           # PDF parsing (PyMuPDF / fitz)
+
+# ==========================================
+# 6. Relational Database (HITL Tickets + Interaction Logs)
+# ==========================================
+SQLAlchemy>=2.0.31
+alembic>=1.13.2           # Database migrations
+
+# ==========================================
+# 7. Utilities
+# ==========================================
+python-dotenv>=1.0.1
+loguru>=0.7.2             # Structured logging

@@ -1,0 +1,104 @@
+# ────────────────────────────────────────────
+# Python
+# ────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+MANIFEST
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# PyInstaller
+*.spec
+
+# Unit test / coverage
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# mypy / pyright
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyright/
+
+# Ruff / linting
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints
+
+# ────────────────────────────────────────────
+# Environment & secrets
+# ────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ────────────────────────────────────────────
+# Databases & local data
+# ────────────────────────────────────────────
+*.db
+*.sqlite3
+*.sqlite
+
+# Qdrant vector store persisted data
+qdrant_data/
+
+# ────────────────────────────────────────────
+# Next.js / Node
+# ────────────────────────────────────────────
+jordan-vision-frontend/node_modules/
+jordan-vision-frontend/.next/
+jordan-vision-frontend/out/
+jordan-vision-frontend/.npm
+jordan-vision-frontend/.eslintcache
+
+# yarn / pnpm lock duplicates (keep package-lock.json)
+jordan-vision-frontend/yarn.lock
+jordan-vision-frontend/.pnpm-store/
+
+# ────────────────────────────────────────────
+# Docker & infra
+# ────────────────────────────────────────────
+.docker/
+
+# ────────────────────────────────────────────
+# OS artifacts
+# ────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ────────────────────────────────────────────
+# IDE / editors
+# ────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
