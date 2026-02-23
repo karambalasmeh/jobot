@@ -40,3 +40,9 @@ alembic>=1.13.2           # Database migrations
 # ==========================================
 python-dotenv>=1.0.1
 loguru>=0.7.2             # Structured logging
+
+# ==========================================
+# 8. Fallback LLMs (in case Vertex AI is restricted)
+# ==========================================
+langchain-groq>=0.2.4
+langchain-openai>=0.2.14

@@ -14,8 +14,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# SQLite DB path (alongside the main app DB)
-BM25_DB_PATH = Path(__file__).resolve().parent.parent / "bm25_index.db"
+# SQLite DB path (at the project root to avoid uvicorn reload)
+BM25_DB_PATH = Path(__file__).resolve().parent.parent.parent / "bm25_index.db"
 
 
 def _tokenize(text: str) -> List[str]:

@@ -26,14 +26,35 @@ Context:
 {context}
 """
 
-def _get_llm() -> ChatVertexAI:
-    return ChatVertexAI(
-        model_name="gemini-1.5-flash",
-        project=settings.GCP_PROJECT_ID,
-        location=settings.GCP_LOCATION,
-        temperature=0.0,
-        max_output_tokens=2048,
-    )
+def _get_llm():
+    """Returns the primary LLM (Vertex AI) with a fallback to Groq if needed."""
+    try:
+        # Try Vertex AI first (preferred)
+        return ChatVertexAI(
+            model_name="gemini-2.5-flash",
+            project=settings.GCP_PROJECT_ID,
+            location=settings.GCP_LOCATION,
+            temperature=0.0,
+            max_output_tokens=2048,
+            request_timeout=30.0, # Added timeout
+        )
+    except Exception as e:
+        logger.warning(f"Vertex AI LLM initialization failed: {e}. Trying Groq fallback...")
+        
+    # Fallback to Groq if Vertex AI is unavailable or fails
+    if settings.GROQ_API_KEY:
+        try:
+            from langchain_groq import ChatGroq
+            return ChatGroq(
+                model_name="llama-3.3-70b-versatile",
+                groq_api_key=settings.GROQ_API_KEY,
+                temperature=0.0,
+                timeout=30.0, # Added timeout
+            )
+        except Exception as e:
+            logger.error(f"Groq fallback also failed: {e}")
+    
+    raise RuntimeError("No valid LLM provider (Vertex AI or Groq) found or accessible.")
 
 def _format_docs(docs: List[Document]) -> str:
     """Render retrieved docs with source metadata for the prompt context."""

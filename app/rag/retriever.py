@@ -44,7 +44,7 @@ def _reciprocal_rank_fusion(
     # Sort by fused score
     sorted_results = sorted(doc_scores.values(), key=lambda x: x[1], reverse=True)
 
-    # Normalize scores to 0–1 range
+    # Normalize scores to 0–1 range (relative to best match)
     if sorted_results:
         max_score = sorted_results[0][1]
         if max_score > 0:
@@ -53,11 +53,23 @@ def _reciprocal_rank_fusion(
     return sorted_results
 
 
+def _normalize_scores(results: List[Tuple[Document, float]]) -> List[Tuple[Document, float]]:
+    """Helper to ensure raw engine scores (like BM25) are clamped to 0-1 range."""
+    if not results:
+        return []
+    
+    max_score = results[0][1]
+    if max_score <= 1.0:
+        # Already likely normalized or low similarity distance
+        return results
+    
+    return [(doc, min(1.0, score / max_score)) for doc, score in results]
+
+
 def retrieve_relevant_documents(query: str) -> List[Tuple[Document, float]]:
     """
     Hybrid retrieval: combines Vertex AI semantic search with BM25 keyword search.
     Uses Reciprocal Rank Fusion to merge results.
-    Falls back to semantic-only if BM25 is unavailable.
     """
     k = settings.MAX_RETRIEVED_DOCS
 
@@ -70,9 +82,6 @@ def retrieve_relevant_documents(query: str) -> List[Tuple[Document, float]]:
             k=k,
         )
         logger.info(f"Semantic search returned {len(semantic_results)} results")
-        for i, (doc, score) in enumerate(semantic_results):
-            source = doc.metadata.get("source_file", "Unknown")
-            logger.info(f"  Semantic [{i+1}] score={score:.4f} source={source} text={doc.page_content[:80]}...")
     except Exception as e:
         logger.error(f"Semantic search failed: {e}")
 
@@ -81,23 +90,23 @@ def retrieve_relevant_documents(query: str) -> List[Tuple[Document, float]]:
     try:
         bm25_results = bm25_search(query, k=k)
         logger.info(f"BM25 search returned {len(bm25_results)} results")
-        for i, (doc, score) in enumerate(bm25_results):
-            source = doc.metadata.get("source_file", "Unknown")
-            logger.info(f"  BM25 [{i+1}] score={score:.4f} source={source} text={doc.page_content[:80]}...")
     except Exception as e:
         logger.warning(f"BM25 search failed (non-critical): {e}")
 
     # ── Hybrid Fusion ──
     if semantic_results and bm25_results:
-        fused = _reciprocal_rank_fusion(semantic_results, bm25_results)
+        fused = _reciprocal_rank_fusion(semantic_results, bm25_results, k=60)
         logger.info(f"Hybrid RRF returned {len(fused)} fused results")
-        return fused[:k]
+        results = fused
     elif semantic_results:
-        logger.info("Using semantic-only results (BM25 unavailable)")
-        return semantic_results
+        logger.info("Using semantic-only results")
+        results = _normalize_scores(semantic_results)
     elif bm25_results:
-        logger.info("Using BM25-only results (semantic unavailable)")
-        return bm25_results
+        logger.info("Using BM25-only results")
+        results = _normalize_scores(bm25_results)
     else:
         logger.error("Both semantic and BM25 search returned no results!")
         return []
+
+    # Final enforcement of k (MAX_RETRIEVED_DOCS)
+    return results[:k]

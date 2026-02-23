@@ -4,9 +4,9 @@ from typing import List
 from langchain_core.documents import Document
 from langchain_community.document_loaders import PyMuPDFLoader
 
-# تحديد مسار مجلد الداتا بشكل ديناميكي بناءً على موقع هذا الملف
-BASE_DIR = Path(__file__).resolve().parent.parent
-DEFAULT_DATA_DIR = BASE_DIR / "data"
+# تحديد مسار مجلد الداتا في جذر المشروع (خارج مجلد app لتجنب uvicorn reload)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+DEFAULT_DATA_DIR = PROJECT_ROOT / "data"
 
 def load_documents(data_directory: Path | str = DEFAULT_DATA_DIR) -> List[Document]:
     """

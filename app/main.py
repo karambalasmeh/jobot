@@ -8,12 +8,28 @@ from app.models import ticket
 # استيراد المسارات بما فيها Ingest
 from app.api.routes import chat, hitl, ingest, logs
 
-Base.metadata.create_all(bind=engine)
+from contextlib import asynccontextmanager
+
+# ... (rest of imports)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup logic
+    print("Starting up: initializing database...")
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("Database initialized successfully.")
+    except Exception as e:
+        print(f"Database initialization failed: {e}")
+    yield
+    # Shutdown logic (optional)
+    print("Shutting down...")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    lifespan=lifespan,
 )
 
 # السماح للفرونت إند بالاتصال بالباك إند (يجب إضافة الـ Middleware قبل تسجيل المسارات)
