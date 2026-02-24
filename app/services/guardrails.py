@@ -47,6 +47,25 @@ JORDAN_KEYWORDS = [
     "ريادة", "entrepreneurship",
     "تجارة", "trade",
     "صناعة", "industry",
+    # Financial inclusion
+    "شمول مالي", "financial inclusion", "fintech", "تكنولوجيا مالية",
+    "مصرفي", "banking", "تمويل", "finance", "microfinance",
+    # Digital transformation
+    "تحول رقمي", "digital transformation", "e-government", "حكومة إلكترونية",
+    "أمن سيبراني", "cybersecurity", "بنية تحتية رقمية", "digital infrastructure",
+    # Immersive technology
+    "تكنولوجيا غامرة", "immersive", "metaverse", "ميتافيرس",
+    "واقع افتراضي", "virtual reality", "واقع معزز", "augmented reality",
+    "ذكاء اصطناعي", "artificial intelligence",
+    # Tourism roadmap
+    "سياحة بيئية", "ecotourism", "heritage", "تراث",
+    "hospitality", "ضيافة", "green growth", "نمو أخضر",
+    # Transport sector
+    "نقل عام", "public transport", "logistics", "لوجستيات",
+    "بنية تحتية", "infrastructure", "طرق", "roads", "railway", "سكك حديدية",
+    # General policy
+    "2025", "2026", "2028", "strategy", "استراتيجية", "خطة", "plan",
+    "policy", "سياسة", "تنمية", "development",
 ]
 
 
@@ -98,6 +117,11 @@ Classify if the user's query is related to:
 - Jordan's Economic Modernization Vision (2023-2033)
 - Jordan's Public Sector Modernization Roadmap
 - Investment, economic reforms, sectors, or governance in Jordan
+- Jordan's Digital Transformation Strategy and digital inclusion
+- Financial inclusion, fintech, and banking sector in Jordan
+- Tourism development, green growth, and hospitality in Jordan
+- Transport sector strategy, logistics, and infrastructure in Jordan
+- Immersive technology, AI, and innovation policy in Jordan
 
 Output EXACTLY one word: VALID or INVALID. No other text."""
 

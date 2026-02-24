@@ -13,23 +13,22 @@ logger = logging.getLogger(__name__)
 LLM_REFUSAL_SIGNALS = [
     # Explicit escalation signal from the system prompt
     "HITL_ESCALATION_REQUIRED",
-    # Arabic refusal phrases
-    "عذراً، لا أملك معلومات رسمية",
-    "لا تتوفر لديّ",
-    "لا يمكنني الإجابة",
-    "لا أملك معلومات كافية",
-    "غير متوفر في المستندات",
-    "لم أتمكن من العثور",
-    "لا توجد معلومات كافية",
-    # English refusal phrases
-    "I'm sorry, I don't have sufficient official information",
-    "I don't have",
-    "I cannot find",
-    "not found in the provided context",
-    "not mentioned in the context",
-    "not available in the documents",
-    "I cannot answer",
-    "insufficient context",
+    # Arabic refusal phrases (made more specific)
+    "لا أملك معلومات رسمية بخصوص",
+    "لا تتوفر لديّ هذه المعلومات",
+    "لا يمكنني الإجابة عن هذا السؤال",
+    "لا أملك معلومات كافية في المستندات",
+    "غير متوفر في المستندات الرسمية",
+    "لم أتمكن من العثور على معلومات",
+    "لا توجد معلومات كافية لتقديم إجابة",
+    # English refusal phrases (made more specific)
+    "I don't have sufficient official information",
+    "I do not have access to information regarding",
+    "I cannot find any mention of",
+    "not found in the provided official context",
+    "not mentioned in the available documents",
+    "I cannot answer this specific question",
+    "insufficient context to provide a verified official answer",
 ]
 
 # Patterns that indicate off-topic or policy-violating content crept into the output

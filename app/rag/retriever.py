@@ -44,26 +44,28 @@ def _reciprocal_rank_fusion(
     # Sort by fused score
     sorted_results = sorted(doc_scores.values(), key=lambda x: x[1], reverse=True)
 
-    # Normalize scores to 0–1 range (relative to best match)
-    if sorted_results:
-        max_score = sorted_results[0][1]
-        if max_score > 0:
-            sorted_results = [(doc, score / max_score) for doc, score in sorted_results]
+    # Normalize by the theoretical maximum RRF score
+    # Best possible: rank-0 in both lists → (semantic_weight + bm25_weight) / (k + 1)
+    max_possible = (semantic_weight + bm25_weight) / (k + 1)
+    if max_possible > 0:
+        sorted_results = [(doc, min(1.0, score / max_possible)) for doc, score in sorted_results]
 
     return sorted_results
 
 
-def _normalize_scores(results: List[Tuple[Document, float]]) -> List[Tuple[Document, float]]:
-    """Helper to ensure raw engine scores (like BM25) are clamped to 0-1 range."""
+def _normalize_scores(results: List[Tuple[Document, float]], is_bm25: bool = False) -> List[Tuple[Document, float]]:
+    """
+    Helper to ensure raw engine scores are in 0-1 range.
+    Avoids relative-max normalization so top results aren't forced to 100%.
+    """
     if not results:
         return []
     
-    max_score = results[0][1]
-    if max_score <= 1.0:
-        # Already likely normalized or low similarity distance
-        return results
+    # For BM25, normalize by a fixed 'strong match' score (e.g., 20.0)
+    # For Semantic (Vertex AI), scores are already similarities (0-1)
+    norm_factor = 20.0 if is_bm25 else 1.0
     
-    return [(doc, min(1.0, score / max_score)) for doc, score in results]
+    return [(doc, min(1.0, max(0.0, score / norm_factor))) for doc, score in results]
 
 
 def retrieve_relevant_documents(query: str) -> List[Tuple[Document, float]]:
@@ -103,7 +105,7 @@ def retrieve_relevant_documents(query: str) -> List[Tuple[Document, float]]:
         results = _normalize_scores(semantic_results)
     elif bm25_results:
         logger.info("Using BM25-only results")
-        results = _normalize_scores(bm25_results)
+        results = _normalize_scores(bm25_results, is_bm25=True)
     else:
         logger.error("Both semantic and BM25 search returned no results!")
         return []

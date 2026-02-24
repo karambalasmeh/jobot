@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func as sqlfunc
+from sqlalchemy import func as sqlfunc, cast, String, case
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
@@ -57,7 +57,12 @@ def get_evaluation_metrics(db: Session = Depends(get_db)):
     escalated = db.query(sqlfunc.count(LogRecord.id)).filter(LogRecord.is_escalated == True).scalar() or 0
     answered = total - escalated
 
-    avg_conf = db.query(sqlfunc.avg(LogRecord.confidence_score)).filter(
+    # Clamp stored scores to [0, 1] — old data may have raw Vertex AI scores > 1.0
+    clamped_score = case(
+        (LogRecord.confidence_score > 1.0, 1.0),
+        else_=LogRecord.confidence_score,
+    )
+    avg_conf = db.query(sqlfunc.avg(clamped_score)).filter(
         LogRecord.confidence_score.isnot(None)
     ).scalar()
 
@@ -78,8 +83,8 @@ def get_evaluation_metrics(db: Session = Depends(get_db)):
     ).scalar() or 0
 
     with_citations = db.query(sqlfunc.count(LogRecord.id)).filter(
-        LogRecord.citations != "[]",
         LogRecord.citations.isnot(None),
+        cast(LogRecord.citations, String).notin_(["[]", "null", ""]),
     ).scalar() or 0
 
     return EvaluationMetrics(

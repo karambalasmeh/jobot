@@ -44,8 +44,9 @@ def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
     retrieved_results = retrieve_relevant_documents(query)
     docs = [doc for doc, score in retrieved_results]
 
-    # Extract similarity scores (normalized 0–1; higher = more relevant)
-    all_scores = [round(float(score), 4) for _, score in retrieved_results]
+    # Extract similarity scores and clamp to 0–1 range
+    # (Vertex AI may return raw distance scores > 1.0)
+    all_scores = [round(min(1.0, max(0.0, float(score))), 4) for _, score in retrieved_results]
     top_score = all_scores[0] if all_scores else None
 
     is_escalated = False
