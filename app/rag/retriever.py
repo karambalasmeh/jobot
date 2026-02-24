@@ -7,7 +7,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
 def _reciprocal_rank_fusion(
     semantic_results: List[Tuple[Document, float]],
     bm25_results: List[Tuple[Document, float]],
@@ -17,77 +16,52 @@ def _reciprocal_rank_fusion(
 ) -> List[Tuple[Document, float]]:
     """
     Merge semantic and BM25 results using weighted Reciprocal Rank Fusion.
-    Returns deduplicated results sorted by fused score, normalized to 0–1.
+    Sorts by RRF, but returns the ORIGINAL semantic score to maintain accurate confidence metrics.
     """
-    doc_scores: Dict[str, Tuple[Document, float]] = {}
+    doc_scores: Dict[str, Tuple[Document, float, float]] = {}
 
-    # Score from semantic search (rank-based)
+    # Semantic Search
     for rank, (doc, score) in enumerate(semantic_results):
-        doc_key = doc.page_content[:200]  # Use text prefix as dedup key
+        doc_key = doc.page_content[:200]
         rrf_score = semantic_weight * (1.0 / (k + rank + 1))
-        if doc_key in doc_scores:
-            existing_doc, existing_score = doc_scores[doc_key]
-            doc_scores[doc_key] = (existing_doc, existing_score + rrf_score)
-        else:
-            doc_scores[doc_key] = (doc, rrf_score)
+        # Store: (Document, RRF_Score, Original_Semantic_Score)
+        doc_scores[doc_key] = (doc, rrf_score, score)
 
-    # Score from BM25 search (rank-based)
+    # BM25 Search
     for rank, (doc, score) in enumerate(bm25_results):
         doc_key = doc.page_content[:200]
         rrf_score = bm25_weight * (1.0 / (k + rank + 1))
         if doc_key in doc_scores:
-            existing_doc, existing_score = doc_scores[doc_key]
-            doc_scores[doc_key] = (existing_doc, existing_score + rrf_score)
+            existing_doc, existing_rrf, orig_score = doc_scores[doc_key]
+            doc_scores[doc_key] = (existing_doc, existing_rrf + rrf_score, orig_score)
         else:
-            doc_scores[doc_key] = (doc, rrf_score)
+            # Approximate a low semantic score if only found via keyword match
+            normalized_bm25 = min(1.0, score / 80.0)
+            doc_scores[doc_key] = (doc, rrf_score, normalized_bm25 * 0.5)
 
-    # Sort by fused score
+    # Sort by fused RRF score
     sorted_results = sorted(doc_scores.values(), key=lambda x: x[1], reverse=True)
 
-    # Normalize by the theoretical maximum RRF score
-    # Best possible: rank-0 in both lists → (semantic_weight + bm25_weight) / (k + 1)
-    max_possible = (semantic_weight + bm25_weight) / (k + 1)
-    if max_possible > 0:
-        sorted_results = [(doc, min(1.0, score / max_possible)) for doc, score in sorted_results]
-
-    return sorted_results
-
+    # Return the Document and its ACTUAL semantic score
+    return [(item[0], item[2]) for item in sorted_results]
 
 def _normalize_scores(results: List[Tuple[Document, float]], is_bm25: bool = False) -> List[Tuple[Document, float]]:
-    """
-    Helper to ensure raw engine scores are in 0-1 range.
-    Avoids relative-max normalization so top results aren't forced to 100%.
-    """
     if not results:
         return []
-    
-    # For BM25, normalize by a fixed 'strong match' score (increased from 20 to 80)
-    # For Semantic (Vertex AI), scores are already similarities (0-1)
     norm_factor = 80.0 if is_bm25 else 1.0
-    
     return [(doc, min(1.0, max(0.0, score / norm_factor))) for doc, score in results]
 
-
 def retrieve_relevant_documents(query: str) -> List[Tuple[Document, float]]:
-    """
-    Hybrid retrieval: combines Vertex AI semantic search with BM25 keyword search.
-    Uses Reciprocal Rank Fusion to merge results.
-    """
     k = settings.MAX_RETRIEVED_DOCS
 
-    # ── Semantic Search (Vertex AI) ──
     semantic_results = []
     try:
         vector_store = get_vector_store()
-        semantic_results = vector_store.similarity_search_with_score(
-            query=query,
-            k=k,
-        )
+        semantic_results = vector_store.similarity_search_with_score(query=query, k=k)
         logger.info(f"Semantic search returned {len(semantic_results)} results")
     except Exception as e:
         logger.error(f"Semantic search failed: {e}")
 
-    # ── BM25 Keyword Search ──
     bm25_results = []
     try:
         bm25_results = bm25_search(query, k=k)
@@ -95,20 +69,14 @@ def retrieve_relevant_documents(query: str) -> List[Tuple[Document, float]]:
     except Exception as e:
         logger.warning(f"BM25 search failed (non-critical): {e}")
 
-    # ── Hybrid Fusion ──
     if semantic_results and bm25_results:
-        fused = _reciprocal_rank_fusion(semantic_results, bm25_results, k=60)
-        logger.info(f"Hybrid RRF returned {len(fused)} fused results")
-        results = fused
+        results = _reciprocal_rank_fusion(semantic_results, bm25_results, k=60)
+        logger.info(f"Hybrid RRF returned {len(results)} fused results")
     elif semantic_results:
-        logger.info("Using semantic-only results")
         results = _normalize_scores(semantic_results)
     elif bm25_results:
-        logger.info("Using BM25-only results")
         results = _normalize_scores(bm25_results, is_bm25=True)
     else:
-        logger.error("Both semantic and BM25 search returned no results!")
         return []
 
-    # Final enforcement of k (MAX_RETRIEVED_DOCS)
     return results[:k]

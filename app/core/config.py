@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     # Guardrails & Operational Configs
     # ----------------------------------
     CONFIDENCE_THRESHOLD: float = Field(
-        default=0.55, 
+        default=0.60, 
         description="Minimum hybrid similarity score to answer. If below, escalate to HITL."
     )
     MAX_RETRIEVED_DOCS: int = 5
