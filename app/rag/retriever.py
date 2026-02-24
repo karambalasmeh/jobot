@@ -12,8 +12,8 @@ def _reciprocal_rank_fusion(
     semantic_results: List[Tuple[Document, float]],
     bm25_results: List[Tuple[Document, float]],
     k: int = 60,
-    semantic_weight: float = 0.6,
-    bm25_weight: float = 0.4,
+    semantic_weight: float = 0.7,
+    bm25_weight: float = 0.3,
 ) -> List[Tuple[Document, float]]:
     """
     Merge semantic and BM25 results using weighted Reciprocal Rank Fusion.
@@ -61,9 +61,9 @@ def _normalize_scores(results: List[Tuple[Document, float]], is_bm25: bool = Fal
     if not results:
         return []
     
-    # For BM25, normalize by a fixed 'strong match' score (e.g., 20.0)
+    # For BM25, normalize by a fixed 'strong match' score (increased from 20 to 80)
     # For Semantic (Vertex AI), scores are already similarities (0-1)
-    norm_factor = 20.0 if is_bm25 else 1.0
+    norm_factor = 80.0 if is_bm25 else 1.0
     
     return [(doc, min(1.0, max(0.0, score / norm_factor))) for doc, score in results]
 
