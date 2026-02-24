@@ -1,9 +1,25 @@
 from sqlalchemy.orm import Session
 from app.models import Ticket, LogRecord
 from typing import List, Optional
+from app.services.resolved_answer_service import normalize_question
 
 def create_hitl_ticket(db: Session, user_query: str) -> int:
-    """Create a new HITL ticket and return its ID."""
+    """Create a new HITL ticket and return its ID.
+
+    De-duplicates identical open tickets to avoid queue spam on repeated queries.
+    """
+    norm = normalize_question(user_query)
+    recent_open = (
+        db.query(Ticket)
+        .filter(Ticket.status == "open")
+        .order_by(Ticket.id.desc())
+        .limit(200)
+        .all()
+    )
+    for t in recent_open:
+        if normalize_question(t.user_query) == norm:
+            return t.id
+
     new_ticket = Ticket(
         user_query=user_query,
         status="open"

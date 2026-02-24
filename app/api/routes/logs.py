@@ -5,6 +5,8 @@ from typing import List, Optional
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from app.api.dependencies import get_db
+from app.api.security import require_admin
+from app.models.user import User
 from app.models.log_record import LogRecord
 
 router = APIRouter()
@@ -39,7 +41,7 @@ class EvaluationMetrics(BaseModel):
 
 
 @router.get("/logs", response_model=List[LogRecordResponse])
-def get_interaction_logs(limit: int = 50, db: Session = Depends(get_db)):
+def get_interaction_logs(limit: int = 50, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
     """Retrieve recent interaction logs for diagnostics and review."""
     logs = (
         db.query(LogRecord)
@@ -51,7 +53,7 @@ def get_interaction_logs(limit: int = 50, db: Session = Depends(get_db)):
 
 
 @router.get("/evaluation", response_model=EvaluationMetrics)
-def get_evaluation_metrics(db: Session = Depends(get_db)):
+def get_evaluation_metrics(db: Session = Depends(get_db), admin: User = Depends(require_admin)):
     """Compute aggregate evaluation metrics from interaction logs."""
     total = db.query(sqlfunc.count(LogRecord.id)).scalar() or 0
     escalated = db.query(sqlfunc.count(LogRecord.id)).filter(LogRecord.is_escalated == True).scalar() or 0

@@ -8,6 +8,7 @@ from app.rag.generator import _get_llm
 from app.core.config import settings
 import logging
 import re
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +23,11 @@ MIN_QUERY_LENGTH = 3
 BLOCKED_TERMS = [
     # Harmful / unsafe
     "bomb", "weapon", "kill", "attack", "hack", "exploit", "virus", "malware",
+    "قنبلة", "سلاح", "اغتيال", "قرصنة", "فيروس", "برمجيات خبيثة",
     "قنبلة", "سلاح", "اغتيال", "قرصنة", "فيروس",
     # Clearly out of scope topics
     "recipe", "وصفة", "طبخ", "cooking",
+    "مطبخ",
     "football", "soccer", "كرة القدم",
     "movie", "فيلم", "مسلسل",
     "dating", "love", "relationship", "حب", "تعارف",
@@ -96,7 +99,12 @@ def _fast_precheck(query: str) -> str:
     return "UNCERTAIN"
 
 
-def validate_input_query(query: str) -> bool:
+def _contains_jordan_signal(text: str) -> bool:
+    text_lower = text.lower()
+    return any(kw in text_lower for kw in JORDAN_KEYWORDS)
+
+
+def validate_input_query(query: str, context: Optional[str] = None) -> bool:
     """
     Main entry point. Returns True if query is in scope, False if it should be rejected.
     """
@@ -109,6 +117,11 @@ def validate_input_query(query: str) -> bool:
         return True
 
     # UNCERTAIN — use LLM classifier
+    # Follow-up handling: if the conversation context is clearly in-scope, allow short/ambiguous follow-ups.
+    if context and _contains_jordan_signal(context):
+        logger.debug("Input guardrail: context-based pass for follow-up query")
+        return True
+
     try:
         llm = _get_llm()
 

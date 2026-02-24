@@ -46,3 +46,9 @@ loguru>=0.7.2             # Structured logging
 # ==========================================
 langchain-groq>=0.2.4
 langchain-openai>=0.2.14
+
+# ==========================================
+# 9. Auth (JWT + password hashing)
+# ==========================================
+passlib>=1.7.4
+python-jose[cryptography]>=3.3.0

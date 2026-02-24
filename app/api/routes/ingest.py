@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 import logging
 
@@ -6,6 +6,8 @@ from app.rag.document_loader import load_documents
 from app.rag.text_splitter import split_documents
 from app.rag.vector_store import build_vector_store
 from app.rag.bm25_store import build_bm25_index
+from app.api.security import require_admin
+from app.models.user import User
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -18,7 +20,7 @@ class IngestResponse(BaseModel):
     bm25_indexed: int
 
 @router.post("/", response_model=IngestResponse)
-def ingest_data():
+def ingest_data(admin: User = Depends(require_admin)):
     """
     Read PDF files from the data directory, split into chunks,
     embed and store in Vertex AI Vector Search + BM25 keyword index.

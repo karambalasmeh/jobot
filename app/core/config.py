@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from typing import Optional
+import secrets
 
 class Settings(BaseSettings):
     # ----------------------------------
@@ -42,6 +43,22 @@ class Settings(BaseSettings):
     # ----------------------------------
     GROQ_API_KEY: Optional[str] = Field(default=None, description="API Key for Groq Cloud (fallback)")
     OPENAI_API_KEY: Optional[str] = Field(default=None, description="API Key for OpenAI (fallback)")
+
+    # ----------------------------------
+    # Auth (JWT)
+    # ----------------------------------
+    JWT_SECRET_KEY: str = Field(
+        default_factory=lambda: secrets.token_urlsafe(48),
+        description="JWT signing secret. Set in .env for stable sessions.",
+    )
+    JWT_ALGORITHM: str = Field(default="HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=60 * 24)
+
+    # ----------------------------------
+    # Admin bootstrap (optional)
+    # ----------------------------------
+    ADMIN_BOOTSTRAP_USERNAME: Optional[str] = Field(default=None, description="Create/update this admin user on startup")
+    ADMIN_BOOTSTRAP_PASSWORD: Optional[str] = Field(default=None, description="Admin password used on startup bootstrap")
 
     model_config = SettingsConfigDict(
         env_file=".env", 
