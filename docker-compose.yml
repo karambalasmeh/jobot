@@ -1,11 +1,30 @@
-version: '3.8'
-
 services:
-  qdrant:
-    image: qdrant/qdrant:latest
-    container_name: jordan_vision_qdrant
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jordan_vision_api
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: sqlite:////code/persist/jordan_vision_agent.db
+      BM25_DB_PATH: /code/persist/bm25_index.db
     ports:
-      - "6333:6333"
-      - "6334:6334"
+      - "8000:8000"
     volumes:
-      - ./qdrant_data:/qdrant/storage
+      - ./data:/code/data
+      - ./persist:/code/persist
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./jordan-vision-frontend
+      dockerfile: Dockerfile
+    container_name: jordan_vision_frontend
+    environment:
+      BACKEND_URL: http://api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped

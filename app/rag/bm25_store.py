@@ -6,6 +6,7 @@ Stores documents in SQLite for persistence alongside Vertex AI semantic search.
 import json
 import sqlite3
 import re
+import os
 from pathlib import Path
 from typing import List, Tuple
 from rank_bm25 import BM25Okapi
@@ -14,8 +15,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# SQLite DB path (at the project root to avoid uvicorn reload)
-BM25_DB_PATH = Path(__file__).resolve().parent.parent.parent / "bm25_index.db"
+# SQLite DB path (default: project root to avoid uvicorn reload).
+# In Docker/production, you can override with BM25_DB_PATH to store it on a mounted volume.
+_DEFAULT_BM25_DB_PATH = Path(__file__).resolve().parent.parent.parent / "bm25_index.db"
+BM25_DB_PATH = Path(os.getenv("BM25_DB_PATH", str(_DEFAULT_BM25_DB_PATH)))
 
 
 def _tokenize(text: str) -> List[str]:

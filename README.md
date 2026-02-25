@@ -83,3 +83,21 @@ In the chat page, click the **Report** button to generate a report for a topic.
 ## Full Documentation
 
 See `documentation.md` for architecture, endpoints, database schema, env variables, and operational details.
+
+## Fast Deploy (Docker Compose)
+
+This repo includes a Docker Compose setup that runs:
+
+- Backend (FastAPI) on `http://localhost:8000`
+- Frontend (Next.js) on `http://localhost:3000`
+
+Steps:
+
+```bash
+docker compose up -d --build
+```
+
+Notes:
+
+- Keep your real secrets in `.env` (don’t bake them into images).
+- Persistent storage is mounted from `./data/` (PDFs) and `./persist/` (SQLite DBs).

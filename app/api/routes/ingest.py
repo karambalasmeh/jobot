@@ -36,9 +36,15 @@ def ingest_data(admin: User = Depends(require_admin)):
         logger.info(f"Loaded {len(raw_docs)} pages. Starting text splitting...")
         chunks = split_documents(raw_docs)
         
-        # 3. Build Vertex AI Vector Store (semantic search)
-        logger.info(f"Created {len(chunks)} chunks. Uploading to Vertex AI...")
-        build_vector_store(chunks)
+        # 3. Build Vertex AI Vector Store (semantic search) (optional)
+        vertex_uploaded = True
+        try:
+            logger.info(f"Created {len(chunks)} chunks. Uploading to Vertex AI...")
+            build_vector_store(chunks)
+        except Exception as e:
+            # Allow BM25-only mode for low-cost deployments or when Vertex credentials aren't available.
+            vertex_uploaded = False
+            logger.warning(f"Vertex ingestion skipped/failed; continuing with BM25-only indexing. Error: {e}")
         
         # 4. Build BM25 keyword index (hybrid search)
         logger.info("Building BM25 keyword index...")
@@ -48,7 +54,11 @@ def ingest_data(admin: User = Depends(require_admin)):
         
         return IngestResponse(
             status="success",
-            message=f"Data successfully ingested: {len(raw_docs)} documents → {len(chunks)} chunks uploaded to Vertex AI + BM25 index.",
+            message=(
+                f"Data ingested: {len(raw_docs)} documents -> {len(chunks)} chunks. "
+                + ("Vertex upload: OK. " if vertex_uploaded else "Vertex upload: SKIPPED. ")
+                + f"BM25 indexed: {bm25_count}."
+            ),
             total_documents=len(raw_docs),
             total_chunks=len(chunks),
             bm25_indexed=bm25_count,
