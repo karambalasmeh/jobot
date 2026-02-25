@@ -16,7 +16,7 @@ import app.models.message  # noqa: F401
 import app.models.resolved_answer  # noqa: F401
 
 # Routes
-from app.api.routes import auth, chat, conversations, hitl, ingest, logs
+from app.api.routes import auth, chat, conversations, hitl, ingest, logs, reports
 from app.models.conversation import Conversation
 from app.models.user import User
 from app.services.auth_service import hash_password
@@ -98,6 +98,7 @@ app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["Aut
 app.include_router(chat.router, prefix=f"{settings.API_V1_STR}/chat", tags=["Chat Interface"])
 app.include_router(conversations.router, prefix=f"{settings.API_V1_STR}/conversations", tags=["Conversations"])
 app.include_router(hitl.router, prefix=f"{settings.API_V1_STR}/hitl", tags=["Human-in-the-Loop"])
+app.include_router(reports.router, prefix=f"{settings.API_V1_STR}/reports", tags=["Reports"])
 app.include_router(ingest.router, prefix=f"{settings.API_V1_STR}/ingest", tags=["Data Ingestion"])
 app.include_router(logs.router, prefix=f"{settings.API_V1_STR}/admin", tags=["Admin & Diagnostics"])
 

@@ -28,6 +28,9 @@ rank-bm25>=0.2.2
 # 5. Document Processing
 # ==========================================
 pymupdf>=1.24.9           # PDF parsing (PyMuPDF / fitz)
+python-docx>=1.1.2        # DOCX report generation
+matplotlib>=3.9.0         # Charts/plots for reports
+docx2pdf>=0.1.8           # Optional: DOCX -> PDF conversion on Windows (requires MS Word)
 
 # ==========================================
 # 6. Relational Database (HITL Tickets + Interaction Logs)

@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from typing import Optional
 import secrets
 
@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     # ----------------------------------
     # App General Info
     # ----------------------------------
-    PROJECT_NAME: str = "Jordan Vision 2033 Advisory Agent"
+    PROJECT_NAME: str = "NashmiBot"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     ENVIRONMENT: str = Field(
@@ -43,6 +43,23 @@ class Settings(BaseSettings):
     # ----------------------------------
     GROQ_API_KEY: Optional[str] = Field(default=None, description="API Key for Groq Cloud (fallback)")
     OPENAI_API_KEY: Optional[str] = Field(default=None, description="API Key for OpenAI (fallback)")
+
+    # ----------------------------------
+    # LLM Models (Vertex primary, Groq fallback)
+    # ----------------------------------
+    VERTEX_LLM_MODEL: str = Field(
+        default="gemini-2.5-flash",
+        description="Vertex AI chat model name (primary).",
+    )
+    GROQ_FALLBACK_MODEL: str = Field(
+        default="llama3-70b-8192",
+        validation_alias=AliasChoices("GROQ_FALLBACK_MODEL", "MAIN_LLM_MODEL"),
+        description="Groq chat model name (fallback). Falls back to MAIN_LLM_MODEL for backward compatibility.",
+    )
+    LLM_REQUEST_TIMEOUT_SECONDS: float = Field(
+        default=30.0,
+        description="Timeout (seconds) for LLM requests (Vertex/Groq).",
+    )
 
     # ----------------------------------
     # Auth (JWT)

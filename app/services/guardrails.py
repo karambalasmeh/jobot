@@ -4,8 +4,8 @@ Validates incoming user queries before they reach the RAG pipeline.
 Provides scope control, query validation, and prompt safety filtering.
 """
 from langchain_core.prompts import ChatPromptTemplate
-from app.rag.generator import _get_llm
 from app.core.config import settings
+from app.services.llm_router import invoke_with_fallback
 import logging
 import re
 from typing import Optional
@@ -104,7 +104,7 @@ def _contains_jordan_signal(text: str) -> bool:
     return any(kw in text_lower for kw in JORDAN_KEYWORDS)
 
 
-def validate_input_query(query: str, context: Optional[str] = None) -> bool:
+def validate_input_query(query: str, context: Optional[str] = None, provider_preference: str = "auto") -> bool:
     """
     Main entry point. Returns True if query is in scope, False if it should be rejected.
     """
@@ -123,8 +123,6 @@ def validate_input_query(query: str, context: Optional[str] = None) -> bool:
         return True
 
     try:
-        llm = _get_llm()
-
         system_prompt = """You are a strict classifier for the 'Jordan Vision 2033 Advisory Agent'.
 Classify if the user's query is related to:
 - Jordan's Economic Modernization Vision (2023-2033)
@@ -143,9 +141,15 @@ Output EXACTLY one word: VALID or INVALID. No other text."""
             ("human", "{query}")
         ])
 
-        chain = prompt | llm
-        response = chain.invoke({"query": query})
-        result = response.content.strip().upper()
+        response_text, provider = invoke_with_fallback(
+            prompt,
+            {"query": query},
+            max_output_tokens=16,
+            temperature=0.0,
+            provider_preference=provider_preference,
+        )
+        result = response_text.strip().upper()
+        logger.debug("Input guardrail: LLM provider=%s classified as %s", provider, result)
 
         if "INVALID" in result:
             logger.warning("Input guardrail: LLM classified as out-of-scope: %s", query[:80])

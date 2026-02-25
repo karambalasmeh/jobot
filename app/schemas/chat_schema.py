@@ -1,10 +1,14 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 
 class ChatRequest(BaseModel):
     query: str = Field(..., description="User query")
     conversation_id: Optional[int] = Field(default=None, description="Conversation ID to continue")
+    provider: Literal["auto", "vertex", "groq"] = Field(
+        default="auto",
+        description="LLM provider preference: auto (Vertex->Groq), vertex, or groq.",
+    )
 
 
 class SourceMetadata(BaseModel):

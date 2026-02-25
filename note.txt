@@ -1,12 +1,11 @@
 Q:By the end of 2022, how many registered electric vehicles were there in Jordan, and what percentage of the total vehicles did they represent?
-note : 83% precision 
+note : 83% precision after it you can ask can you tell me the specific number and it will follow the history and answer it  or (do you know if they were hybrid or what the type of this vehicles?)
 
 
 Q:How does the strategy propose addressing the financial constraints of the National Railway Network given the public sector's inability to borrow?
 note : 62% precision 
 
-Q: How does Meta's Segment Anything Model (SAM) handle zero-shot generalization in computer vision tasks?
-note: Escalated to Advisors
+
 
 Q:What is the recommended CI/CD pipeline configuration for deploying a containerized machine learning API to AWS EC2?
 note: out of the scope 

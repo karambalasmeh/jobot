@@ -19,6 +19,7 @@ from app.services.guardrails import validate_input_query
 from app.services.hitl_service import create_hitl_ticket, log_interaction
 from app.services.output_guardrails import check_output
 from app.services.resolved_answer_service import find_resolved_answer, normalize_question, upsert_resolved_answer
+from app.services.translation_service import is_arabic_text, translate_to_english
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -89,9 +90,13 @@ def chat_with_agent(
     history_text = _build_history_text(db, conversation_id, limit=10, before_id=user_msg.id)
 
     # LAYER 1: Input Guardrails (context-aware for follow-ups)
-    if not validate_input_query(query, context=history_text):
+    if not validate_input_query(query, context=history_text, provider_preference=request.provider):
         guardrail_status = "input_blocked"
-        answer = "Your question is out of scope for this advisory agent."
+        answer = (
+            "سؤالك خارج نطاق هذا الوكيل الاستشاري."
+            if is_arabic_text(query)
+            else "Your question is out of scope for this advisory agent."
+        )
 
         elapsed = int((time.time() - start_time) * 1000)
         db.add(
@@ -206,10 +211,31 @@ def chat_with_agent(
 
     # LAYER 2: Hybrid Retrieval (Vertex AI Semantic + BM25)
     retrieved_results = retrieve_relevant_documents(retrieval_query)
-    docs = [doc for doc, score in retrieved_results]
-
     all_scores = [round(min(1.0, max(0.0, float(score))), 4) for _, score in retrieved_results]
     top_score = all_scores[0] if all_scores else None
+
+    # If the user asks in Arabic and retrieval is weak, translate to English for retrieval (bilingual RAG).
+    if is_arabic_text(query) and (not retrieved_results or top_score is None or top_score < settings.CONFIDENCE_THRESHOLD):
+        try:
+            translated_query = translate_to_english(retrieval_query, provider_preference=request.provider)
+            if translated_query and translated_query != retrieval_query:
+                alt_results = retrieve_relevant_documents(translated_query)
+                alt_scores = [round(min(1.0, max(0.0, float(score))), 4) for _, score in alt_results]
+                alt_top = alt_scores[0] if alt_scores else None
+                if alt_results and alt_top is not None and (top_score is None or alt_top > top_score):
+                    logger.info(
+                        "Arabic retrieval fallback used translated query (top_score=%s -> %s)",
+                        top_score,
+                        alt_top,
+                    )
+                    retrieval_query = translated_query
+                    retrieved_results = alt_results
+                    all_scores = alt_scores
+                    top_score = alt_top
+        except Exception as e:
+            logger.warning("Arabic retrieval translation fallback failed: %s", str(e))
+
+    docs = [doc for doc, _score in retrieved_results]
 
     is_escalated = False
     ticket_id = None
@@ -219,19 +245,27 @@ def chat_with_agent(
     if not retrieved_results or top_score is None or top_score < settings.CONFIDENCE_THRESHOLD:
         is_escalated = True
         guardrail_status = "low_confidence"
-        answer = "This query requires specialized human review. A ticket has been created."
+        answer = (
+            "يتطلب هذا الاستفسار مراجعة بشرية متخصصة. تم إنشاء تذكرة."
+            if is_arabic_text(query)
+            else "This query requires specialized human review. A ticket has been created."
+        )
         ticket_id = create_hitl_ticket(db, query)
         logger.info("HITL escalation: low confidence (top_score=%s) for query: %s", top_score, query[:80])
     else:
         # LAYER 4: Generation (Vertex AI Gemini)
-        answer = generate_grounded_answer(query, docs, history=history_text)
+        answer = generate_grounded_answer(query, docs, history=history_text, provider_preference=request.provider)
 
         # LAYER 5: Output Guardrails
         guard_result = check_output(answer, citations_available=len(docs) > 0)
         if guard_result.should_escalate:
             is_escalated = True
             guardrail_status = f"output_{guard_result.reason}"
-            answer = "This query requires specialized human review. A ticket has been created."
+            answer = (
+                "يتطلب هذا الاستفسار مراجعة بشرية متخصصة. تم إنشاء تذكرة."
+                if is_arabic_text(query)
+                else "This query requires specialized human review. A ticket has been created."
+            )
             ticket_id = create_hitl_ticket(db, query)
             logger.info("HITL escalation: output guardrail (reason=%s)", guard_result.reason)
         else:
